@@ -1,24 +1,25 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
 #[derive(Debug)]
 pub struct File {
-    path: PathBuf,
+    pub path: PathBuf,
 }
 
 #[derive(Debug)]
-pub struct Directory {
-    path: PathBuf,
-    files: Vec<File>,
-    directories: Vec<Directory>,
+pub struct FileTree {
+    pub path: PathBuf,
+    pub files: Vec<File>,
+    pub directories: Vec<FileTree>,
 }
 
-pub fn create_file_tree(path: PathBuf) -> Directory {
+impl FileTree {}
+
+pub fn create_file_tree(path: PathBuf) -> FileTree {
     let paths = fs::read_dir(path.clone()).unwrap();
+
     let mut files = Vec::new();
     let mut directories = Vec::new();
+
     for path in paths {
         if let Ok(p) = path {
             let pa = p.path();
@@ -40,7 +41,7 @@ pub fn create_file_tree(path: PathBuf) -> Directory {
         }
     }
 
-    return Directory {
+    return FileTree {
         path,
         directories,
         files,
