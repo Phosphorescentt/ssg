@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
+use std::str;
 use std::{fs, path::PathBuf};
 
 #[derive(Debug)]
@@ -36,7 +37,6 @@ pub fn create_file_tree(path: PathBuf) -> FileTree {
     let mut directories = Vec::new();
 
     for path in paths {
-        println!("path: {:?}", path);
         if let Ok(p) = path {
             let pa = p.path();
             match (pa.is_dir(), pa.is_file()) {
@@ -60,33 +60,24 @@ pub fn create_file_tree(path: PathBuf) -> FileTree {
     };
 }
 
-pub fn create_directory_structure(tree: &FileTree, output_dir: PathBuf) -> io::Result<()> {
+pub fn create_directory_structure(tree: &FileTree, output_dir: &PathBuf) -> io::Result<()> {
     println!("Creating directory structure for {:?}", tree.path);
-    let mut new_path = output_dir.clone();
-    new_path.push(tree.path.clone());
-    if !new_path.exists() {
+
+    let new_path = output_dir.join(&tree.path);
+    if !new_path.try_exists().unwrap() {
         fs::create_dir(new_path).unwrap();
         for dir in tree.directories.iter() {
-            create_directory_structure(&dir, output_dir.clone()).unwrap();
+            create_directory_structure(&dir, &output_dir).unwrap();
         }
     }
 
     for file in &tree.files {
-        println!("creating: {:?}", file.path.clone());
         let html = crate::markdown::markdown_to_html(crate::markdown::Markdown(
-            fs::read_to_string(file.path.clone()).unwrap(),
+            fs::read_to_string(&file.path).unwrap(),
         ));
-        println!("html: {:?}", html);
-
-        let mut f = OpenOptions::new()
-            .write(true)
-            .append(false)
-            .create(true)
-            .open(file.path.clone())
-            .unwrap();
-
-        f.write(html.0.as_bytes()).unwrap();
+        let mut f = fs::File::create(output_dir.join(&file.path)).unwrap();
+        f.write_all(html.0.as_bytes()).unwrap();
     }
 
-    return Ok(());
+    Ok(())
 }
