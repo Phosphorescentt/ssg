@@ -17,7 +17,6 @@ fn main() {
     println!("Cleaned output dir.");
     let ft = fs::create_file_tree(args.input_dir.into());
     println!("Parsed file tree.");
-    println!("ft: {:#?}", ft);
     let output_dir = PathBuf::from(args.output_dir);
     let _ = markdown::render_file_tree(ft, &output_dir);
     println!("Site rendered!")

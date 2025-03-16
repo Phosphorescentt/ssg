@@ -72,10 +72,11 @@ pub fn create_directory_structure(tree: &FileTree, output_dir: &PathBuf) -> io::
     }
 
     for file in &tree.files {
+        println!("rendering {:?}", file.path);
         let html = crate::markdown::markdown_to_html(crate::markdown::Markdown(
             fs::read_to_string(&file.path).unwrap(),
         ));
-        let mut f = fs::File::create(output_dir.join(&file.path)).unwrap();
+        let mut f = fs::File::create(output_dir.join(&file.path).with_extension("html")).unwrap();
         f.write_all(html.0.as_bytes()).unwrap();
     }
 
