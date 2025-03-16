@@ -11,7 +11,10 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+    let _ = fs::prep_output_dir(args.output_dir.clone().into());
+    println!("Cleaned output dir.");
     let ft = fs::create_file_tree(args.input_dir.into());
-    println!("{:?}", ft);
-    markdown::render_file_tree(ft, args.output_dir.into());
+    println!("{:#?}", ft);
+    let _ = markdown::render_file_tree(ft, args.output_dir.into());
+    println!("Site rendered!")
 }
