@@ -19,5 +19,5 @@ fn main() {
     println!("Parsed file tree.");
     let output_dir = PathBuf::from(args.output_dir);
     let _ = markdown::render_file_tree(ft, &output_dir);
-    println!("Site rendered!")
+    println!("Site generated!")
 }
