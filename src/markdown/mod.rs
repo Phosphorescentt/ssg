@@ -1,7 +1,7 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, iter::Peekable, str::Chars};
 mod blocks;
 
-use blocks::{HeaderElement, ParagraphElement};
+use blocks::{HeaderElement, ParagraphElement, TextElement};
 
 use crate::markdown::blocks::MarkdownTree;
 
@@ -28,7 +28,7 @@ pub fn render_file_tree(file_tree: crate::fs::FileTree, output_dir: &PathBuf) ->
 }
 
 pub fn markdown_to_html(markdown: Markdown) -> Html {
-    let parsed = parse_markdown(markdown);
+    let parsed = parse_markdown_tree(markdown);
     println!("parsed: {:#?}", parsed);
     return parsed.to_html();
 }
@@ -63,68 +63,40 @@ impl ParserContext {
     }
 }
 
-fn parse_markdown(markdown: Markdown) -> MarkdownTree {
-    println!("=========================");
-    println!("parsing: {}", markdown.0);
-    let mut context = ParserContext::new();
+fn parse_markdown_tree(markdown: Markdown) -> MarkdownTree {
     let mut tree = MarkdownTree::new();
 
-    for char in markdown.0.chars() {
-        println!("ctx.current_object_type: {:?}", context.current_object_type);
-        println!(
-            "ctx.current_object_content: {}",
-            context.current_object_content
-        );
-        match context.current_object_type {
-            ObjectType::None => {
-                if char == '#' {
-                    context.current_object_type = ObjectType::Header;
-                    context.header_level += 1;
-                } else if char.is_alphanumeric() {
-                    context.current_object_content.push(char);
-                    context.current_object_type = ObjectType::Paragraph;
-                }
+    let mut chars_iter = markdown.0.chars().peekable();
+    loop {
+        if let Some(char) = chars_iter.peek() {
+            println!("current char: {}", char);
+            if char == &'#' {
+                tree.blocks.push(parse_header(&mut chars_iter));
+            } else if char.is_alphanumeric() {
+                tree.blocks.push(parse_paragraph(&mut chars_iter));
             }
-            ObjectType::Header => {
-                if char.is_control() {
-                    context.current_object_content.push(char);
-                    tree.blocks.push(Box::new(HeaderElement {
-                        content: parse_markdown(Markdown(context.current_object_content.clone())),
-                        header_level: context.header_level,
-                    }));
-                    context.reset();
-                } else if char == '#' {
-                    context.header_level += 1;
-                } else if char.is_alphanumeric() || char.is_ascii_whitespace() {
-                    context.current_object_content.push(char);
-                }
-            }
-            ObjectType::Paragraph => {
-                if char.is_control() {
-                    context.current_object_content.push(char);
-                    tree.blocks.push(Box::new(ParagraphElement {
-                        content: parse_markdown(Markdown(context.current_object_content.clone())),
-                    }));
-                    context.reset();
-                } else {
-                    context.current_object_content.push(char)
-                }
-            }
+            chars_iter.next();
+        } else {
+            break;
         }
     }
 
-    // Finalise remaining content
-
-    tree
+    return tree;
 }
 
-fn parse_markdown_tree(markdown: Markdown) -> MarkdownTree {
-    let mut context = ParserContext::new();
-    let mut tree = MarkdownTree::new();
+fn parse_header(chars_iter: &mut Peekable<Chars>) -> Box<HeaderElement> {
+    let level = chars_iter.take_while(|x| x == &'#').count();
+    let content = chars_iter
+        .take_while(|x| !x.is_control())
+        .collect::<String>();
 
-    let chars_iter = markdown.0.chars();
+    return Box::new(HeaderElement { content, level });
 }
 
-fn parse_header_content(markdown: Markdown) -> HeaderElement {
-    // pass
+fn parse_paragraph(chars_iter: &mut Peekable<Chars>) -> Box<ParagraphElement> {
+    let content = chars_iter
+        .take_while(|x| !x.is_control())
+        .collect::<String>();
+
+    return Box::new(ParagraphElement { content });
 }
